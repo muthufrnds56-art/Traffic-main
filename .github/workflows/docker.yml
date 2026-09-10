@@ -1,0 +1,21 @@
+name: Traffic Management System CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Build API Docker image
+        run: docker build -t traffic-api -f Dockerfile.api .
+
+      - name: Build Dashboard Docker image
+        run: docker build -t traffic-dashboard -f Dockerfile.dashboard .
