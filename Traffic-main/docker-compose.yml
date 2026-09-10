@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # MQTT Broker (Mosquitto)
+  mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: traffic_mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - mqtt_data:/mosquitto/data
+      - mqtt_logs:/mosquitto/log
+    networks:
+      - traffic_network
+
+  # Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: traffic_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - traffic_network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: traffic_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - traffic_network
+
+  # InfluxDB
+  influxdb:
+    image: influxdb:2.0
+    container_name: traffic_influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=traffic123
+      - DOCKER_INFLUXDB_INIT_ORG=traffic_org
+      - DOCKER_INFLUXDB_INIT_BUCKET=traffic_data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=your_influxdb_token
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - traffic_network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    container_name: traffic_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - traffic_network
+
+  # Traffic Management API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: traffic_api
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mqtt
+      - kafka
+      - influxdb
+      - redis
+    environment:
+      - KAFKA_BROKER=kafka:9092
+      - INFLUXDB_URL=http://influxdb:8086
+      - REDIS_URL=redis://redis:6379
+      - MQTT_BROKER=mqtt
+    networks:
+      - traffic_network
+    volumes:
+      - ./models:/app/models
+
+  # Traffic Dashboard
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: traffic_dashboard
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    environment:
+      - API_BASE_URL=http://api:8000
+    networks:
+      - traffic_network
+
+volumes:
+  mqtt_data:
+  mqtt_logs:
+  influxdb_data:
+  redis_data:
+
+networks:
+  traffic_network:
+    driver: bridge
+

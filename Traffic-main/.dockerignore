@@ -1,0 +1,33 @@
+# Git and Docker
+.git
+.gitignore
+.dockerignore
+.env
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# Large Data & Media
+datasets/
+processed/
+uploads/
+sample_traffic.mp4
+*.mp4
+*.avi
+*.mov
+
+# Tests and Tools
+tests/
+tools/
+run_system.py
+start_system.py
+setup_git.ps1
+verify_changes.py
+download_traffic_video.py

@@ -1,0 +1,40 @@
+services:
+  # Traffic API Service
+  - type: web
+    name: traffic-api
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: Dockerfile.api
+    plan: free
+    envVars:
+      - key: DISABLE_SENSORS
+        value: "1"
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: traffic-redis
+          property: connectionString
+      - key: PORT
+        value: "8000"
+
+  # Traffic Dashboard Service
+  - type: web
+    name: traffic-dashboard
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: Dockerfile.dashboard
+    plan: free
+    envVars:
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: traffic-api
+          property: url
+      - key: PORT
+        value: "8501"
+
+  # Redis Service (Free Tier)
+  - type: redis
+    name: traffic-redis
+    ipAllowList: [] # Allow all internal connections
+    plan: free

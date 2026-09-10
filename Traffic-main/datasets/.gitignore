@@ -1,0 +1,8 @@
+# Ignore all CSV files (datasets can be large)
+*.csv
+*.zip
+*.json
+*.parquet
+
+# Keep the README
+!README.md
